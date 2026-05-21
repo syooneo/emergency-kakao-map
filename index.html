@@ -17,11 +17,71 @@
             background-color: #f8f9fa;
             overflow: hidden;
         }
+
+        /* [절대 방어] 무조건 지도보다 위에 뜨도록 z-index를 최대로 끌어올린 팝업창 */
+        .modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background-color: rgba(0, 0, 0, 0.75) !important; /* 배경 어둡게 */
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            z-index: 999999 !important; /* 카카오맵 레이어 격파용 최상위 값 */
+        }
+        .modal-box {
+            background-color: white !important;
+            width: 480px !important;
+            padding: 35px !important;
+            border-radius: 16px !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4) !important;
+            text-align: center !important;
+        }
+        .modal-box h3 {
+            font-size: 24px;
+            color: #e74c3c;
+            margin-bottom: 12px;
+        }
+        .modal-box p {
+            font-size: 14px;
+            color: #4c566a;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .modal-input-group {
+            display: flex;
+            gap: 8px;
+        }
+        .modal-box input {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            outline: none;
+        }
+        .modal-box input:focus { border-color: #e74c3c; }
+        .modal-box button {
+            padding: 14px 24px;
+            font-size: 16px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .modal-box button:hover { background-color: #c0392b; }
+
+        /* 메인 레이아웃 구조 */
         .container {
             display: flex;
             width: 100%;
             height: 100%;
             position: relative;
+            z-index: 1;
         }
 
         /* 왼쪽 사이드바 */
@@ -195,63 +255,6 @@
             font-weight: bold;
         }
 
-        /* [핵심] 화면 정중앙에 뜨는 큰 시작 팝업창 스타일 */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.75); /* 전체 화면 차단 및 어둡게 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999; /* 지도나 사이드바보다 무조건 위에 오도록 설정 */
-        }
-        .modal-box {
-            background-color: white;
-            width: 480px;
-            padding: 35px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center;
-        }
-        .modal-box h3 {
-            font-size: 24px;
-            color: #e74c3c;
-            margin-bottom: 12px;
-        }
-        .modal-box p {
-            font-size: 14px;
-            color: #4c566a;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-        .modal-input-group {
-            display: flex;
-            gap: 8px;
-        }
-        .modal-box input {
-            flex: 1;
-            padding: 14px;
-            font-size: 16px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            outline: none;
-        }
-        .modal-box input:focus { border-color: #e74c3c; }
-        .modal-box button {
-            padding: 14px 24px;
-            font-size: 16px;
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .modal-box button:hover { background-color: #c0392b; }
-
         /* 페이지 가쪽(오른쪽 하단 구석) 고정 위치 안내 바 */
         .floating-location-box {
             position: absolute;
@@ -284,6 +287,7 @@
         .map-area {
             flex: 1;
             height: 100%;
+            z-index: 2;
         }
     </style>
 </head>
@@ -370,11 +374,11 @@
             geocoder = new kakao.maps.services.Geocoder(); 
             infowindow = new kakao.maps.InfoWindow({zIndex:1});
 
-            // 화면이 켜지자마자 입력창에 바로 타이핑할 수 있게 포커스 강제 고정
+            // 페이지 켜지자마자 팝업 인풋창에 바로 글 쓸 수 있게 포커스 강제 세팅
             document.getElementById('modalAddressInput').focus();
         });
 
-        // 팝업창에서 지역 입력 후 버튼 누르거나 엔터 쳤을 때 지도를 여는 함수
+        // 팝업창 제어용 메인 함수
         function submitStartLocation() {
             const addrInput = document.getElementById('modalAddressInput').value;
             
@@ -383,18 +387,16 @@
                 return;
             }
 
-            // 카카오Geocoder로 한글 주소를 위도/경도 좌표로 분석
             geocoder.addressSearch(addrInput, function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
                     const targetLatLng = new kakao.maps.LatLng(result[0].y, result[0].x);
                     
-                    // 해당 위치를 기준점으로 잡고 5km 원 그리기
                     setBaseLocation(targetLatLng, result[0].address_name);
                     
-                    // 주소 찾기가 성공하면 강제로 한가운데 떠 있던 팝업 레이어를 숨김 처리
+                    // 성공하면 팝업창을 완전히 보이지 않게 꺼버림
+                    document.getElementById('startModal').style.setItem('display', 'none', 'important');
                     document.getElementById('startModal').style.display = 'none';
                     
-                    // 지정된 동네 주변의 응급실 즉시 원격 검색 가동
                     searchMedical('응급실', document.querySelector('.main-tabs .tab-btn'));
                 } else {
                     alert("주소를 찾지 못했습니다. 시, 구, 동 명칭을 정확하게 다시 입력해 주세요.");
@@ -402,14 +404,13 @@
             });
         }
 
-        // 나중에 다시 변경하고 싶을 때 우하단 가쪽 버튼을 누르면 다시 모달창을 켜주는 함수
         function openLocationChangePopup() {
+            document.getElementById('startModal').style.setItem('display', 'flex', 'important');
             document.getElementById('startModal').style.display = 'flex';
             document.getElementById('modalAddressInput').value = '';
             document.getElementById('modalAddressInput').focus();
         }
 
-        // 지도상에 기준 중심점 마커 및 5km 반경 시각화 가시화
         function setBaseLocation(latlng, addressName) {
             currentLatLng = latlng;
             map.setCenter(currentLatLng);
@@ -444,7 +445,6 @@
             infowindow.open(map, centerMarker);
         }
 
-        // 직접 텍스트 타이핑 검색창 기능
         function searchPlaces() {
             const keyword = document.getElementById('keyword').value;
             if (!keyword.trim()) {
