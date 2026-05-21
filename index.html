@@ -81,7 +81,6 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .search-box-wrapper button:hover { background-color: #c0392b; }
 
         /* 가로형 대분류 탭 */
         .main-tabs {
@@ -156,10 +155,8 @@
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            transition: transform 0.2s;
             position: relative;
         }
-        .item-card:hover { transform: translateY(-2px); }
         .item-card h5 {
             font-size: 15px;
             margin-bottom: 6px;
@@ -197,9 +194,65 @@
             border-radius: 4px;
             font-weight: bold;
         }
-        .detail-link-btn:hover { background-color: #2980b9; }
 
-        /* 가쪽(오른쪽 하단 구석) 우하단 고정 위치 바 */
+        /* [핵심] 화면 정중앙에 뜨는 큰 시작 팝업창 스타일 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75); /* 전체 화면 차단 및 어둡게 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* 지도나 사이드바보다 무조건 위에 오도록 설정 */
+        }
+        .modal-box {
+            background-color: white;
+            width: 480px;
+            padding: 35px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .modal-box h3 {
+            font-size: 24px;
+            color: #e74c3c;
+            margin-bottom: 12px;
+        }
+        .modal-box p {
+            font-size: 14px;
+            color: #4c566a;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .modal-input-group {
+            display: flex;
+            gap: 8px;
+        }
+        .modal-box input {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            outline: none;
+        }
+        .modal-box input:focus { border-color: #e74c3c; }
+        .modal-box button {
+            padding: 14px 24px;
+            font-size: 16px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .modal-box button:hover { background-color: #c0392b; }
+
+        /* 페이지 가쪽(오른쪽 하단 구석) 고정 위치 안내 바 */
         .floating-location-box {
             position: absolute;
             bottom: 20px;
@@ -213,10 +266,9 @@
             align-items: center;
             gap: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.1);
         }
         .floating-info { font-size: 13px; }
-        .floating-info strong { color: #f1c40f; font-weight: bold; }
+        .floating-info strong { color: #f1c40f; }
         .floating-btn {
             padding: 6px 12px;
             background-color: #e67e22;
@@ -227,71 +279,12 @@
             font-weight: bold;
             font-size: 12px;
         }
-        .floating-btn:hover { background-color: #d35400; }
 
         /* 오른쪽 지도 영역 */
         .map-area {
             flex: 1;
             height: 100%;
         }
-
-        /* [요청반영] 화면 정중앙에 뜨는 큰 시작 팝업(모달창) 디자인 */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.65); /* 뒷배경 어둡게 암전 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000; /* 무조건 최상단 노출 */
-            transition: opacity 0.3s ease;
-        }
-        .modal-box {
-            background-color: white;
-            width: 480px;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            text-align: center;
-        }
-        .modal-box h3 {
-            font-size: 22px;
-            color: #e74c3c;
-            margin-bottom: 10px;
-        }
-        .modal-box p {
-            font-size: 13px;
-            color: #6c757d;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-        .modal-input-group {
-            display: flex;
-            gap: 8px;
-        }
-        .modal-box input {
-            flex: 1;
-            padding: 12px 15px;
-            font-size: 15px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            outline: none;
-        }
-        .modal-box input:focus { border-color: #e74c3c; }
-        .modal-box button {
-            padding: 12px 24px;
-            font-size: 15px;
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .modal-box button:hover { background-color: #c0392b; }
     </style>
 </head>
 <body>
@@ -299,7 +292,7 @@
     <div id="startModal" class="modal-overlay">
         <div class="modal-box">
             <h3>🚑 탐색 지역 설정</h3>
-            <p>24시 응급실, 병원, 약국을 탐색할 중심 지역을 지정해 주세요.<br><strong>시, 구, 동 단위</strong>로 입력하시면 편리합니다.</p>
+            <p>우리동네 24시 응급실, 병원, 약국을 탐색할 중심 지역을 지정해 주세요.<br><strong>시, 구, 동 단위</strong>로 입력하시면 편리합니다.</p>
             <div class="modal-input-group">
                 <input type="text" id="modalAddressInput" placeholder="예: 상도동, 분당구, 고양시" onkeyup="if(window.event.keyCode==13){submitStartLocation()}">
                 <button onclick="submitStartLocation()">지도 열기</button>
@@ -370,54 +363,53 @@
 
         kakao.maps.load(function() {
             const mapContainer = document.getElementById('map'); 
-            const defaultPosition = new kakao.maps.LatLng(37.5546788, 126.9706069); // 서울역
+            const defaultPosition = new kakao.maps.LatLng(37.5546788, 126.9706069); 
             
             map = new kakao.maps.Map(mapContainer, { center: defaultPosition, level: 5 });
             ps = new kakao.maps.services.Places();
             geocoder = new kakao.maps.services.Geocoder(); 
             infowindow = new kakao.maps.InfoWindow({zIndex:1});
 
-            // 팝업 열릴 때 자동 인풋 창 포커스 처리
+            // 화면이 켜지자마자 입력창에 바로 타이핑할 수 있게 포커스 강제 고정
             document.getElementById('modalAddressInput').focus();
         });
 
-        // [요청반영] 첫 진입 팝업창에서 '지도 열기' 눌렀을 때 실행되는 컨트롤러
+        // 팝업창에서 지역 입력 후 버튼 누르거나 엔터 쳤을 때 지도를 여는 함수
         function submitStartLocation() {
             const addrInput = document.getElementById('modalAddressInput').value;
             
             if (!addrInput.trim()) {
-                alert("탐색할 지역명을 기입해 주세요!");
+                alert("탐색할 지역명을 입력해 주세요!");
                 return;
             }
 
-            // 카카오Geocoder 주소 좌표 분석 작동
+            // 카카오Geocoder로 한글 주소를 위도/경도 좌표로 분석
             geocoder.addressSearch(addrInput, function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
                     const targetLatLng = new kakao.maps.LatLng(result[0].y, result[0].x);
                     
-                    // 기준점 그래픽 드로잉 및 세팅
+                    // 해당 위치를 기준점으로 잡고 5km 원 그리기
                     setBaseLocation(targetLatLng, result[0].address_name);
                     
-                    // 팝업창 어둠의 레이어 끄기 숨김 처리
+                    // 주소 찾기가 성공하면 강제로 한가운데 떠 있던 팝업 레이어를 숨김 처리
                     document.getElementById('startModal').style.display = 'none';
                     
-                    // 해당 세팅 지역 기반으로 최초 응급실 스캔 자동 실행
+                    // 지정된 동네 주변의 응급실 즉시 원격 검색 가동
                     searchMedical('응급실', document.querySelector('.main-tabs .tab-btn'));
                 } else {
-                    alert("주소를 매칭하지 못했습니다. 시, 구, 혹은 동의 이름만 정확하게 다시 적어보세요.");
+                    alert("주소를 찾지 못했습니다. 시, 구, 동 명칭을 정확하게 다시 입력해 주세요.");
                 }
             });
         }
 
-        // 우하단 가쪽 버튼을 눌러서 '다시 지역 바꾸고 싶을 때' 쓰는 우회 모달 부팅 함수
+        // 나중에 다시 변경하고 싶을 때 우하단 가쪽 버튼을 누르면 다시 모달창을 켜주는 함수
         function openLocationChangePopup() {
-            // 새 팝업 창을 새로 띄우기 위해 블록 표시로 원복하고 글자 및 입력칸 초기화
             document.getElementById('startModal').style.display = 'flex';
             document.getElementById('modalAddressInput').value = '';
             document.getElementById('modalAddressInput').focus();
         }
 
-        // 기준 위치 그래픽 레이어 투사 및 가시화
+        // 지도상에 기준 중심점 마커 및 5km 반경 시각화 가시화
         function setBaseLocation(latlng, addressName) {
             currentLatLng = latlng;
             map.setCenter(currentLatLng);
@@ -452,7 +444,7 @@
             infowindow.open(map, centerMarker);
         }
 
-        // 직접 검색창 함수
+        // 직접 텍스트 타이핑 검색창 기능
         function searchPlaces() {
             const keyword = document.getElementById('keyword').value;
             if (!keyword.trim()) {
