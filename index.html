@@ -18,63 +18,6 @@
             overflow: hidden;
         }
 
-        /* [절대 방어] 무조건 지도보다 위에 뜨도록 z-index를 최대로 끌어올린 팝업창 */
-        .modal-overlay {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background-color: rgba(0, 0, 0, 0.75) !important; /* 배경 어둡게 */
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            z-index: 999999 !important; /* 카카오맵 레이어 격파용 최상위 값 */
-        }
-        .modal-box {
-            background-color: white !important;
-            width: 480px !important;
-            padding: 35px !important;
-            border-radius: 16px !important;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4) !important;
-            text-align: center !important;
-        }
-        .modal-box h3 {
-            font-size: 24px;
-            color: #e74c3c;
-            margin-bottom: 12px;
-        }
-        .modal-box p {
-            font-size: 14px;
-            color: #4c566a;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-        .modal-input-group {
-            display: flex;
-            gap: 8px;
-        }
-        .modal-box input {
-            flex: 1;
-            padding: 14px;
-            font-size: 16px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            outline: none;
-        }
-        .modal-box input:focus { border-color: #e74c3c; }
-        .modal-box button {
-            padding: 14px 24px;
-            font-size: 16px;
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .modal-box button:hover { background-color: #c0392b; }
-
         /* 메인 레이아웃 구조 */
         .container {
             display: flex;
@@ -255,7 +198,7 @@
             font-weight: bold;
         }
 
-        /* 페이지 가쪽(오른쪽 하단 구석) 고정 위치 안내 바 */
+        /* 페이지 가쪽 고정 위치 안내 바 */
         .floating-location-box {
             position: absolute;
             bottom: 20px;
@@ -293,17 +236,6 @@
 </head>
 <body>
 
-    <div id="startModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>🚑 탐색 지역 설정</h3>
-            <p>우리동네 24시 응급실, 병원, 약국을 탐색할 중심 지역을 지정해 주세요.<br><strong>시, 구, 동 단위</strong>로 입력하시면 편리합니다.</p>
-            <div class="modal-input-group">
-                <input type="text" id="modalAddressInput" placeholder="예: 상도동, 분당구, 고양시" onkeyup="if(window.event.keyCode==13){submitStartLocation()}">
-                <button onclick="submitStartLocation()">지도 열기</button>
-            </div>
-        </div>
-    </div>
-
     <div class="container">
         <div class="sidebar">
             <div class="info-header">
@@ -338,7 +270,7 @@
 
             <div id="placesList" class="list-area">
                 <p style="text-align:center; padding:20px; color:#999; font-size:13px;">
-                    지역을 선택하시면 결과가 이곳에 표시됩니다.
+                    하단의 '지역 변경' 버튼을 누르거나 검색어를 입력하시면 결과가 표시됩니다.
                 </p>
             </div>
         </div>
@@ -347,9 +279,9 @@
 
         <div class="floating-location-box">
             <div class="floating-info">
-                📍 기준지: <strong id="currentLocationText">지역 설정 필요</strong>
+                📍 기준지: <strong id="currentLocationText">서울역 (기본값)</strong>
             </div>
-            <button class="floating-btn" onclick="openLocationChangePopup()">📍 지역 변경</button>
+            <button class="floating-btn" onclick="promptLocationChange()">📍 지역 변경</button>
         </div>
     </div>
 
@@ -365,6 +297,7 @@
         let centerMarker = null;  
         let centerCircle = null;  
 
+        // 진입 시 팝업 없이 즉시 서울역 기준으로 지도 로드
         kakao.maps.load(function() {
             const mapContainer = document.getElementById('map'); 
             const defaultPosition = new kakao.maps.LatLng(37.5546788, 126.9706069); 
@@ -374,16 +307,17 @@
             geocoder = new kakao.maps.services.Geocoder(); 
             infowindow = new kakao.maps.InfoWindow({zIndex:1});
 
-            // 페이지 켜지자마자 팝업 인풋창에 바로 글 쓸 수 있게 포커스 강제 세팅
-            document.getElementById('modalAddressInput').focus();
+            // 즉시 기본 위치 세팅
+            setBaseLocation(defaultPosition, "서울역 주변");
         });
 
-        // 팝업창 제어용 메인 함수
-        function submitStartLocation() {
-            const addrInput = document.getElementById('modalAddressInput').value;
+        // 우하단 버튼 클릭 시 브라우저 내장 입력창으로 간편하게 동네 변경
+        function promptLocationChange() {
+            const addrInput = prompt("의료 시설을 탐색할 중심 지역명을 입력해 주세요!\n(예: 상도동, 분당구, 고양시 등)");
             
+            if (addrInput === null) return; 
             if (!addrInput.trim()) {
-                alert("탐색할 지역명을 입력해 주세요!");
+                alert("지역명을 입력해 주세요!");
                 return;
             }
 
@@ -393,10 +327,7 @@
                     
                     setBaseLocation(targetLatLng, result[0].address_name);
                     
-                    // 성공하면 팝업창을 완전히 보이지 않게 꺼버림
-                    document.getElementById('startModal').style.setItem('display', 'none', 'important');
-                    document.getElementById('startModal').style.display = 'none';
-                    
+                    // 지역 변경에 성공하면 자동으로 '응급실' 카테고리 검색 작동
                     searchMedical('응급실', document.querySelector('.main-tabs .tab-btn'));
                 } else {
                     alert("주소를 찾지 못했습니다. 시, 구, 동 명칭을 정확하게 다시 입력해 주세요.");
@@ -404,13 +335,7 @@
             });
         }
 
-        function openLocationChangePopup() {
-            document.getElementById('startModal').style.setItem('display', 'flex', 'important');
-            document.getElementById('startModal').style.display = 'flex';
-            document.getElementById('modalAddressInput').value = '';
-            document.getElementById('modalAddressInput').focus();
-        }
-
+        // 중심점 및 5km 반경 가시화 레이어 설정
         function setBaseLocation(latlng, addressName) {
             currentLatLng = latlng;
             map.setCenter(currentLatLng);
