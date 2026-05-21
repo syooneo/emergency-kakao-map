@@ -296,7 +296,7 @@
         let geocoder; 
         let centerMarker = null;  
         let centerCircle = null;  
-        let currentSelectedCategory = ""; // 현재 선택된 검색 종류 추적
+        let currentSelectedCategory = ""; 
 
         kakao.maps.load(function() {
             const mapContainer = document.getElementById('map'); 
@@ -364,7 +364,6 @@
             infowindow.open(map, centerMarker);
         }
 
-        // 키워드 직접 입력 검색 기능
         function searchPlaces() {
             const keyword = document.getElementById('keyword').value;
             if (!keyword.trim()) {
@@ -375,7 +374,6 @@
             document.getElementById('subTabsContainer').classList.remove('show');
             currentSelectedCategory = "직접검색";
 
-            // 직접 검색 시에도 병원/약국 코드 중 하나라도 걸리도록 유연하게 설정 (기본은 위치옵션 적용)
             const searchOptions = {
                 location: currentLatLng,
                 radius: 5000,
@@ -391,7 +389,6 @@
             searchMedical('종합병원', element);
         }
 
-        // 카테고리 탭 선택 검색 기능 (★카테고리 코드 강제 매핑으로 떡볶이집 완벽 방어)
         function searchMedical(keyword, element) {
             if (element.classList.contains('tab-btn')) {
                 clearAllTabActiveStyles();
@@ -407,17 +404,16 @@
 
             if (!currentLatLng) return;
 
-            // 카카오 지도 카테고리 그룹 코드 세팅 (HP8: 병원, PM9: 약국)
-            let categoryGroupCode = 'HP8'; // 기본값은 병원 코드
+            let categoryGroupCode = 'HP8'; 
             if (keyword === '약국') {
-                categoryGroupCode = 'PM9'; // 약국 탭일 땐 약국 코드
+                categoryGroupCode = 'PM9'; 
             }
 
             const searchOptions = {
                 location: currentLatLng,
                 radius: 5000,
                 sort: kakao.maps.services.SortBy.ACCURACY,
-                category_group_code: categoryGroupCode // 이 옵션이 일반 상점을 원천 차단해 줌
+                category_group_code: categoryGroupCode 
             };
 
             ps.keywordSearch(keyword, searchCB, searchOptions);
@@ -438,6 +434,7 @@
             }
         }
 
+        // ★ 핵심 수정: 떡볶이집 및 상업 시설 필터링 기능 강화
         function displayMedicalPlaces(places) {
             const listEl = document.getElementById('placesList');
             const bounds = new kakao.maps.LatLngBounds();
@@ -445,8 +442,21 @@
             clearMarkers();        
 
             bounds.extend(currentLatLng);
+            let validPlaceCount = 0;
+
+            // 음식점, 카페 등 의료 기관이 아닌 상호 차단을 위한 블랙리스트 검색어 설정
+            const foodBlacklist = ['떡볶이', '포차', '다방', '카페', '치킨', '피자', '족발', '삼겹살', '식당', '분식', '마라탕'];
 
             for (let i = 0; i < places.length; i++) {
+                const placeName = places[i].place_name;
+
+                // 상호명에 블랙리스트 단어가 하나라도 들어가 있으면 즉시 제외(skip)
+                const isFoodShop = foodBlacklist.some(badWord => placeName.includes(badWord));
+                if (isFoodShop) {
+                    continue; 
+                }
+
+                validPlaceCount++;
                 const placePosition = new kakao.maps.LatLng(places[i].y, places[i].x);
                 const marker = addMarker(placePosition);
 
@@ -454,8 +464,7 @@
                 let isOpen = true;
                 let timeStr = "09:00 ~ 18:00";
 
-                // 응급실 조건 판별
-                if (currentSelectedCategory === '응급실' || places[i].place_name.includes('응급')) {
+                if (currentSelectedCategory === '응급실' || placeName.includes('응급')) {
                     isOpen = true;
                     timeStr = "24시간 연중무휴";
                 } else if (currentHour < 9 || currentHour >= 18) {
@@ -471,7 +480,7 @@
                 const itemEl = document.createElement('div');
                 itemEl.className = 'item-card';
                 itemEl.innerHTML = `
-                    <h5>${places[i].place_name}</h5>
+                    <h5>${placeName}</h5>
                     <p>📍 ${places[i].road_address_name || places[i].address_name}</p>
                     ${places[i].phone ? `<p>📞 ${places[i].phone}</p>` : ''}
                     ${badgeHTML}
@@ -492,6 +501,13 @@
                 listEl.appendChild(itemEl);
                 bounds.extend(placePosition);
             }
+
+            // 만약 필터링 후 남은 진짜 병원이 하나도 없을 때의 예외 처리
+            if (validPlaceCount === 0) {
+                listEl.innerHTML = '<p style="text-align:center; padding:20px; color:#999; font-size:13px;">이 지역 주변 5km 이내에 실제 의료 기관 결과가 없습니다.</p>';
+                return;
+            }
+
             map.setBounds(bounds);
         }
 
