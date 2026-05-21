@@ -81,9 +81,7 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .search-box-wrapper button:hover {
-            background-color: #c0392b;
-        }
+        .search-box-wrapper button:hover { background-color: #c0392b; }
 
         /* 가로형 대분류 탭 */
         .main-tabs {
@@ -115,9 +113,7 @@
             padding-top: 10px;
             border-top: 1px dashed #ced4da;
         }
-        .sub-tabs-container.show {
-            display: block;
-        }
+        .sub-tabs-container.show { display: block; }
         .sub-tabs-title {
             font-size: 12px;
             font-weight: bold;
@@ -163,9 +159,7 @@
             transition: transform 0.2s;
             position: relative;
         }
-        .item-card:hover {
-            transform: translateY(-2px);
-        }
+        .item-card:hover { transform: translateY(-2px); }
         .item-card h5 {
             font-size: 15px;
             margin-bottom: 6px;
@@ -205,7 +199,7 @@
         }
         .detail-link-btn:hover { background-color: #2980b9; }
 
-        /* [요청반영] 지도의 가쪽(오른쪽 하단 구석)에 둥둥 뜨는 플로팅 위치 변경 위젯 */
+        /* 가쪽(오른쪽 하단 구석) 우하단 고정 위치 바 */
         .floating-location-box {
             position: absolute;
             bottom: 20px;
@@ -221,13 +215,8 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             border: 1px solid rgba(255,255,255,0.1);
         }
-        .floating-info {
-            font-size: 13px;
-        }
-        .floating-info strong {
-            color: #f1c40f;
-            font-weight: bold;
-        }
+        .floating-info { font-size: 13px; }
+        .floating-info strong { color: #f1c40f; font-weight: bold; }
         .floating-btn {
             padding: 6px 12px;
             background-color: #e67e22;
@@ -237,7 +226,6 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 12px;
-            transition: background 0.2s;
         }
         .floating-btn:hover { background-color: #d35400; }
 
@@ -246,9 +234,78 @@
             flex: 1;
             height: 100%;
         }
+
+        /* [요청반영] 화면 정중앙에 뜨는 큰 시작 팝업(모달창) 디자인 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.65); /* 뒷배경 어둡게 암전 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* 무조건 최상단 노출 */
+            transition: opacity 0.3s ease;
+        }
+        .modal-box {
+            background-color: white;
+            width: 480px;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .modal-box h3 {
+            font-size: 22px;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+        .modal-box p {
+            font-size: 13px;
+            color: #6c757d;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .modal-input-group {
+            display: flex;
+            gap: 8px;
+        }
+        .modal-box input {
+            flex: 1;
+            padding: 12px 15px;
+            font-size: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            outline: none;
+        }
+        .modal-box input:focus { border-color: #e74c3c; }
+        .modal-box button {
+            padding: 12px 24px;
+            font-size: 15px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .modal-box button:hover { background-color: #c0392b; }
     </style>
 </head>
 <body>
+
+    <div id="startModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🚑 탐색 지역 설정</h3>
+            <p>24시 응급실, 병원, 약국을 탐색할 중심 지역을 지정해 주세요.<br><strong>시, 구, 동 단위</strong>로 입력하시면 편리합니다.</p>
+            <div class="modal-input-group">
+                <input type="text" id="modalAddressInput" placeholder="예: 상도동, 분당구, 고양시" onkeyup="if(window.event.keyCode==13){submitStartLocation()}">
+                <button onclick="submitStartLocation()">지도 열기</button>
+            </div>
+        </div>
+    </div>
 
     <div class="container">
         <div class="sidebar">
@@ -284,7 +341,7 @@
 
             <div id="placesList" class="list-area">
                 <p style="text-align:center; padding:20px; color:#999; font-size:13px;">
-                    위치 정보를 분석하고 있습니다...
+                    지역을 선택하시면 결과가 이곳에 표시됩니다.
                 </p>
             </div>
         </div>
@@ -293,9 +350,9 @@
 
         <div class="floating-location-box">
             <div class="floating-info">
-                📍 기준지: <strong id="currentLocationText">내 현재 위치</strong>
+                📍 기준지: <strong id="currentLocationText">지역 설정 필요</strong>
             </div>
-            <button class="floating-btn" onclick="changeSearchLocation()">📍 지역 변경</button>
+            <button class="floating-btn" onclick="openLocationChangePopup()">📍 지역 변경</button>
         </div>
     </div>
 
@@ -308,92 +365,67 @@
         let currentLatLng = null; 
         let markers = [];         
         let geocoder; 
-        let centerMarker = null;  // 현재 탐색 기준점을 눈에 띄게 보여줄 마커
-        let centerCircle = null;  // 5km 반경 가시화 원
+        let centerMarker = null;  
+        let centerCircle = null;  
 
         kakao.maps.load(function() {
             const mapContainer = document.getElementById('map'); 
-            const defaultPosition = new kakao.maps.LatLng(37.5546788, 126.9706069); // 기본 서울역
+            const defaultPosition = new kakao.maps.LatLng(37.5546788, 126.9706069); // 서울역
             
             map = new kakao.maps.Map(mapContainer, { center: defaultPosition, level: 5 });
             ps = new kakao.maps.services.Places();
             geocoder = new kakao.maps.services.Geocoder(); 
             infowindow = new kakao.maps.InfoWindow({zIndex:1});
 
-            // GPS로 실제 내 현재 위치 파악
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    
-                    const myPosition = new kakao.maps.LatLng(lat, lon);
-                    
-                    // 기준 위치 설정 및 화면 주소 갱신
-                    setBaseLocation(myPosition, "내 현재 위치");
-                    coord2Address(myPosition);
-
-                    // 기본값으로 내 주변 응급실 즉시 원격 검색
-                    searchMedical('응급실', document.querySelector('.main-tabs .tab-btn'));
-
-                }, function(error) {
-                    setBaseLocation(defaultPosition, "서울역(기본위치)");
-                });
-            } else {
-                setBaseLocation(defaultPosition, "서울역(기본위치)");
-            }
+            // 팝업 열릴 때 자동 인풋 창 포커스 처리
+            document.getElementById('modalAddressInput').focus();
         });
 
-        // 중심 좌표 주소 텍스트 파싱 변환기
-        function coord2Address(coord) {
-            geocoder.coord2RegionCode(coord.getLng(), coord.getLat(), function(result, status) {
-                if (status === kakao.maps.services.Status.OK) {
-                    for(let i=0; i<result.length; i++) {
-                        if(result[i].region_type === 'H') {
-                            document.getElementById('currentLocationText').innerText = result[i].address_name;
-                            break;
-                        }
-                    }
-                }
-            });
-        }
-
-        // [요청반영] 가쪽 버튼 누르면 팝업창을 띄워 시/동 단위로 기준점을 변경하는 함수
-        function changeSearchLocation() {
-            const newAddress = prompt("의료기관을 탐색할 기준 동네(시/구/동)를 적어주세요:\n예시: 일산동구, 상도동, 고양시, 강남구");
+        // [요청반영] 첫 진입 팝업창에서 '지도 열기' 눌렀을 때 실행되는 컨트롤러
+        function submitStartLocation() {
+            const addrInput = document.getElementById('modalAddressInput').value;
             
-            if (newAddress === null) return; 
-            if (!newAddress.trim()) {
-                alert("정확한 명칭을 입력해 주세요.");
+            if (!addrInput.trim()) {
+                alert("탐색할 지역명을 기입해 주세요!");
                 return;
             }
 
-            // 한글 주소 -> 위도경도 추출
-            geocoder.addressSearch(newAddress, function(result, status) {
+            // 카카오Geocoder 주소 좌표 분석 작동
+            geocoder.addressSearch(addrInput, function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
-                    const moveLatLng = new kakao.maps.LatLng(result[0].y, result[0].x);
+                    const targetLatLng = new kakao.maps.LatLng(result[0].y, result[0].x);
                     
-                    // 우하단 위젯 주소 동기화 및 마커 갱신
-                    setBaseLocation(moveLatLng, result[0].address_name);
+                    // 기준점 그래픽 드로잉 및 세팅
+                    setBaseLocation(targetLatLng, result[0].address_name);
                     
-                    // 해당 타겟 지역 기준으로 응급실 자동 새로고침 스캔
+                    // 팝업창 어둠의 레이어 끄기 숨김 처리
+                    document.getElementById('startModal').style.display = 'none';
+                    
+                    // 해당 세팅 지역 기반으로 최초 응급실 스캔 자동 실행
                     searchMedical('응급실', document.querySelector('.main-tabs .tab-btn'));
                 } else {
-                    alert("주소를 찾을 수 없습니다. 시, 구, 동 명칭을 정확히 적어보세요.");
+                    alert("주소를 매칭하지 못했습니다. 시, 구, 혹은 동의 이름만 정확하게 다시 적어보세요.");
                 }
             });
         }
 
-        // [기능 고도화] 기준 위치를 세팅하고 맵에 파란색 반짝이 마커 + 5km 반경 투명 원 그리기
+        // 우하단 가쪽 버튼을 눌러서 '다시 지역 바꾸고 싶을 때' 쓰는 우회 모달 부팅 함수
+        function openLocationChangePopup() {
+            // 새 팝업 창을 새로 띄우기 위해 블록 표시로 원복하고 글자 및 입력칸 초기화
+            document.getElementById('startModal').style.display = 'flex';
+            document.getElementById('modalAddressInput').value = '';
+            document.getElementById('modalAddressInput').focus();
+        }
+
+        // 기준 위치 그래픽 레이어 투사 및 가시화
         function setBaseLocation(latlng, addressName) {
             currentLatLng = latlng;
             map.setCenter(currentLatLng);
             document.getElementById('currentLocationText').innerText = addressName;
             
-            // 기존 중심점 그래픽 요소 제거
             if (centerMarker) centerMarker.setMap(null);
             if (centerCircle) centerCircle.setMap(null);
 
-            // 1. 내 위치/기준점 전용 특수 마커 커스텀 이미지 (파란색 원형 마커 소스)
             const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/2012/img/marker_p.png'; 
             const imageSize = new kakao.maps.Size(35, 35);
             const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
@@ -404,10 +436,9 @@
                 image: markerImage
             });
 
-            // 2. 주변 5km 영역을 흐릿한 원으로 시각화 (동경 확인용)
             centerCircle = new kakao.maps.Circle({
                 center : currentLatLng,  
-                radius: 5000, // 반경 5,000m (5km)
+                radius: 5000, 
                 strokeWeight: 2, 
                 strokeColor: '#3498db', 
                 strokeOpacity: 0.5, 
@@ -421,7 +452,7 @@
             infowindow.open(map, centerMarker);
         }
 
-        // 입력창 검색 함수
+        // 직접 검색창 함수
         function searchPlaces() {
             const keyword = document.getElementById('keyword').value;
             if (!keyword.trim()) {
@@ -440,7 +471,6 @@
             searchMedical('종합병원', element);
         }
 
-        // 반경 5km이내 조건 검색 엔진
         function searchMedical(keyword, element) {
             if (element.classList.contains('tab-btn')) {
                 clearAllTabActiveStyles();
@@ -478,21 +508,18 @@
             }
         }
 
-        // 결과 카드 및 지도 연동 출력
         function displayMedicalPlaces(places) {
             const listEl = document.getElementById('placesList');
             const bounds = new kakao.maps.LatLngBounds();
             listEl.innerHTML = ''; 
             clearMarkers();        
 
-            // 검색 결과 정렬에 기준 위치 포함
             bounds.extend(currentLatLng);
 
             for (let i = 0; i < places.length; i++) {
                 const placePosition = new kakao.maps.LatLng(places[i].y, places[i].x);
                 const marker = addMarker(placePosition);
 
-                // 가상 운영시간 데이터 바인딩
                 const currentHour = new Date().getHours();
                 let isOpen = true;
                 let timeStr = "09:00 ~ 18:00";
@@ -543,7 +570,6 @@
             return marker;
         }
 
-        // 결과 마커만 정리 (기준점 전용 마커/원은 보존)
         function clearMarkers() {
             for (let i = 0; i < markers.length; i++) { markers[i].setMap(null); }
             markers = [];
