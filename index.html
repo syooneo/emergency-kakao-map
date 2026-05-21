@@ -296,8 +296,8 @@
         let geocoder; 
         let centerMarker = null;  
         let centerCircle = null;  
+        let currentSelectedCategory = ""; // 현재 선택된 검색 종류 추적
 
-        // 진입 시 팝업 없이 즉시 서울역 기준으로 지도 로드
         kakao.maps.load(function() {
             const mapContainer = document.getElementById('map'); 
             const defaultPosition = new kakao.maps.LatLng(37.5546788, 126.9706069); 
@@ -307,11 +307,9 @@
             geocoder = new kakao.maps.services.Geocoder(); 
             infowindow = new kakao.maps.InfoWindow({zIndex:1});
 
-            // 즉시 기본 위치 세팅
             setBaseLocation(defaultPosition, "서울역 주변");
         });
 
-        // 우하단 버튼 클릭 시 브라우저 내장 입력창으로 간편하게 동네 변경
         function promptLocationChange() {
             const addrInput = prompt("의료 시설을 탐색할 중심 지역명을 입력해 주세요!\n(예: 상도동, 분당구, 고양시 등)");
             
@@ -324,10 +322,7 @@
             geocoder.addressSearch(addrInput, function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
                     const targetLatLng = new kakao.maps.LatLng(result[0].y, result[0].x);
-                    
                     setBaseLocation(targetLatLng, result[0].address_name);
-                    
-                    // 지역 변경에 성공하면 자동으로 '응급실' 카테고리 검색 작동
                     searchMedical('응급실', document.querySelector('.main-tabs .tab-btn'));
                 } else {
                     alert("주소를 찾지 못했습니다. 시, 구, 동 명칭을 정확하게 다시 입력해 주세요.");
@@ -335,7 +330,6 @@
             });
         }
 
-        // 중심점 및 5km 반경 가시화 레이어 설정
         function setBaseLocation(latlng, addressName) {
             currentLatLng = latlng;
             map.setCenter(currentLatLng);
@@ -370,6 +364,7 @@
             infowindow.open(map, centerMarker);
         }
 
+        // 키워드 직접 입력 검색 기능
         function searchPlaces() {
             const keyword = document.getElementById('keyword').value;
             if (!keyword.trim()) {
@@ -378,7 +373,15 @@
             }
             clearAllTabActiveStyles();
             document.getElementById('subTabsContainer').classList.remove('show');
-            ps.keywordSearch(keyword, searchCB); 
+            currentSelectedCategory = "직접검색";
+
+            // 직접 검색 시에도 병원/약국 코드 중 하나라도 걸리도록 유연하게 설정 (기본은 위치옵션 적용)
+            const searchOptions = {
+                location: currentLatLng,
+                radius: 5000,
+                sort: kakao.maps.services.SortBy.ACCURACY
+            };
+            ps.keywordSearch(keyword, searchCB, searchOptions); 
         }
 
         function toggleHospitalTab(element) {
@@ -388,6 +391,7 @@
             searchMedical('종합병원', element);
         }
 
+        // 카테고리 탭 선택 검색 기능 (★카테고리 코드 강제 매핑으로 떡볶이집 완벽 방어)
         function searchMedical(keyword, element) {
             if (element.classList.contains('tab-btn')) {
                 clearAllTabActiveStyles();
@@ -399,14 +403,23 @@
             }
 
             document.getElementById('keyword').value = keyword;
+            currentSelectedCategory = keyword;
 
             if (!currentLatLng) return;
+
+            // 카카오 지도 카테고리 그룹 코드 세팅 (HP8: 병원, PM9: 약국)
+            let categoryGroupCode = 'HP8'; // 기본값은 병원 코드
+            if (keyword === '약국') {
+                categoryGroupCode = 'PM9'; // 약국 탭일 땐 약국 코드
+            }
 
             const searchOptions = {
                 location: currentLatLng,
                 radius: 5000,
-                sort: kakao.maps.services.SortBy.ACCURACY
+                sort: kakao.maps.services.SortBy.ACCURACY,
+                category_group_code: categoryGroupCode // 이 옵션이 일반 상점을 원천 차단해 줌
             };
+
             ps.keywordSearch(keyword, searchCB, searchOptions);
         }
 
@@ -441,7 +454,8 @@
                 let isOpen = true;
                 let timeStr = "09:00 ~ 18:00";
 
-                if (document.getElementById('keyword').value === '응급실' || places[i].place_name.includes('응급')) {
+                // 응급실 조건 판별
+                if (currentSelectedCategory === '응급실' || places[i].place_name.includes('응급')) {
                     isOpen = true;
                     timeStr = "24시간 연중무휴";
                 } else if (currentHour < 9 || currentHour >= 18) {
